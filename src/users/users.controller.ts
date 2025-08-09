@@ -13,6 +13,10 @@ import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { HashService } from 'src/hash/hash.service';
 import { JwtAuthGuard } from 'src/auth/jwtAuth.guard';
+import { AuthenticatedRequest } from 'src/auth/auth.controller';
+import { hasCodeProperty } from 'src/auth/auth.service';
+import { FindOptionsWhere } from 'typeorm';
+import { User } from 'src/users/entities/user.entity';
 
 @Controller('users')
 export class UsersController {
@@ -23,26 +27,35 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async getMe(@Req() req) {
-    return this.usersService.findOne({ id: req.user.userId });
+  async getMe(@Req() req: AuthenticatedRequest) {
+    const where: FindOptionsWhere<User> = { id: Number(req.user.userId) };
+    return this.usersService.findOne(where);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('me')
-  async updateMe(@Req() req, @Body() dto: UpdateUserDto) {
-    const userId = req.user.userId;
+  async updateMe(@Req() req: AuthenticatedRequest, @Body() dto: UpdateUserDto) {
+    const update: UpdateUserDto = {} as UpdateUserDto;
+    if (dto.username !== undefined) update.username = dto.username;
+    if (dto.about !== undefined) update.about = dto.about;
+    if (dto.avatar !== undefined) update.avatar = dto.avatar;
+    if (dto.email !== undefined) update.email = dto.email;
     if (dto.password) {
-      dto.password = await this.hashService.hash(dto.password);
+      update.password = await this.hashService.hash(dto.password);
     }
+
     try {
-      return await this.usersService.updateOne({ id: userId }, dto);
-    } catch (e: any) {
-      if (e.code === '23505') {
+      const where: FindOptionsWhere<User> = {
+        id: Number(req.user.userId),
+      };
+      return await this.usersService.updateOne(where, update);
+    } catch (e: unknown) {
+      if (hasCodeProperty(e) && e.code === '23505') {
         throw new ConflictException(
           'Пользователь с таким email или username уже зарегистрирован',
         );
       }
-      throw e;
+      throw e instanceof Error ? e : new Error(String(e));
     }
   }
 
@@ -50,7 +63,7 @@ export class UsersController {
   async getByUsername(@Param('username') username: string) {
     const user = await this.usersService.findOne({ username });
     if (user) {
-      const { password, ...publicData } = user;
+      const { password: _password, ...publicData } = user;
       return publicData;
     }
     return null;
@@ -59,14 +72,13 @@ export class UsersController {
   @Post('find')
   async findUsersPost(@Body('query') query: string) {
     if (!query) return [];
-    const users = await this.usersService.findMany(query);
-    return users.map(({ password, ...user }) => user);
+    return this.usersService.findMany(query);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('me/wishes')
-  async getMyWishes(@Req() req) {
-    return this.usersService.getWishesByUserId(req.user.userId);
+  async getMyWishes(@Req() req: AuthenticatedRequest) {
+    return this.usersService.getWishesByUserId(Number(req.user.userId));
   }
 
   @Get(':username/wishes')

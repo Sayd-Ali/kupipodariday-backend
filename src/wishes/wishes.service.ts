@@ -20,18 +20,15 @@ export class WishesService {
     private usersRepo: Repository<User>,
   ) {}
 
-  async create(dto: CreateWishDto & { ownerId: number }): Promise<Wish> {
-    const owner = await this.usersRepo.findOneBy({ id: dto.ownerId });
+  async create(dto: CreateWishDto, ownerId: number): Promise<Wish> {
+    const owner = await this.usersRepo.findOneBy({ id: ownerId });
     if (!owner) throw new BadRequestException('Owner not found');
 
-    const { ownerId, ...data } = dto;
-
     const wish = this.wishesRepo.create({
-      ...(data as CreateWishDto),
+      ...dto,
       owner,
       raised: 0,
     });
-
     return this.wishesRepo.save(wish);
   }
 

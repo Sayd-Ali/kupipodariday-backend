@@ -13,6 +13,10 @@ import { WishesService } from './wishes.service';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
 import { JwtAuthGuard } from 'src/auth/jwtAuth.guard';
+import { AuthenticatedRequest } from 'src/auth/auth.controller';
+import { RequestUser } from 'src/auth/jwt.strategy';
+
+export type MaybeAuthRequest = Request & { user?: RequestUser };
 
 @Controller('wishes')
 export class WishesController {
@@ -20,8 +24,8 @@ export class WishesController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateWishDto, @Req() req) {
-    return this.wishes.create({ ...dto, ownerId: req.user.userId });
+  create(@Body() dto: CreateWishDto, @Req() req: AuthenticatedRequest) {
+    return this.wishes.create(dto, Number(req.user.userId));
   }
 
   @Get('last')
@@ -35,26 +39,38 @@ export class WishesController {
   }
 
   @Get(':id')
-  getOne(@Param('id') id: number, @Req() req) {
+  getOne(@Param('id') id: string, @Req() req: MaybeAuthRequest) {
+    const wishId = Number(id);
     const viewerId = req.user?.userId;
-    return this.wishes.findOneById(+id, viewerId);
+    return this.wishes.findOneById(wishId, viewerId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id') id: number, @Body() dto: UpdateWishDto, @Req() req) {
-    return this.wishes.updateProtectedWish(+id, dto, req.user.userId);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateWishDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const wishId = Number(id);
+    return this.wishes.updateProtectedWish(
+      wishId,
+      dto,
+      Number(req.user.userId),
+    );
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id') id: number, @Req() req) {
-    return this.wishes.removeProtectedWish(+id, req.user.userId);
+  remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const wishId = Number(id);
+    return this.wishes.removeProtectedWish(wishId, Number(req.user.userId));
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/copy')
-  copy(@Param('id') id: number, @Req() req) {
-    return this.wishes.copyWish(+id, req.user.userId);
+  copy(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const wishId = Number(id);
+    return this.wishes.copyWish(wishId, Number(req.user.userId));
   }
 }

@@ -1,11 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, FindOptionsWhere } from 'typeorm';
 import { Wishlist } from './entities/wishlist.entity';
 import { CreateWishlistDto } from './dto/create-wishlist.dto';
 import { UpdateWishlistDto } from './dto/update-wishlist.dto';
 import { User } from 'src/users/entities/user.entity';
 import { Wish } from 'src/wishes/entities/wish.entity';
+
+export type WishlistFilter = {
+  id?: number;
+  name?: string;
+  ownerId?: number;
+};
 
 @Injectable()
 export class WishlistsService {
@@ -18,14 +24,14 @@ export class WishlistsService {
     private wishesRepo: Repository<Wish>,
   ) {}
 
-  async create(
-    dto: CreateWishlistDto & { ownerId: number },
-  ): Promise<Wishlist> {
-    const owner = await this.usersRepo.findOneBy({ id: dto.ownerId });
+  async create(dto: CreateWishlistDto, ownerId: number): Promise<Wishlist> {
+    const owner = await this.usersRepo.findOneBy({ id: ownerId });
     if (!owner) throw new Error('Владелец не найден');
+
     const items = dto.itemsId?.length
       ? await this.wishesRepo.findBy({ id: In(dto.itemsId) })
       : [];
+
     const wishlist = this.wishlistsRepo.create({
       name: dto.name,
       description: dto.description,
@@ -33,13 +39,21 @@ export class WishlistsService {
       owner,
       items,
     });
+
     return this.wishlistsRepo.save(wishlist);
   }
 
-  async find(filter: any = {}): Promise<Wishlist[]> {
-    if (filter.id) filter.id = +filter.id;
+  async find(filter: WishlistFilter = {}): Promise<Wishlist[]> {
+    const where: FindOptionsWhere<Wishlist> = {
+      ...(typeof filter.id === 'number' ? { id: filter.id } : {}),
+      ...(typeof filter.name === 'string' ? { name: filter.name } : {}),
+      ...(typeof filter.ownerId === 'number'
+        ? { owner: { id: filter.ownerId } }
+        : {}),
+    };
+
     return this.wishlistsRepo.find({
-      where: filter,
+      where,
       relations: ['owner', 'items'],
     });
   }

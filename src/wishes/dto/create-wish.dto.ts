@@ -1,12 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsString,
-  Length,
-  IsOptional,
-  IsUrl,
-  IsNumber,
-  Min,
-} from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsString, Length, IsUrl, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateWishDto {
@@ -18,13 +11,12 @@ export class CreateWishDto {
   @Length(1, 250)
   name: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     example: 'https://example.com/console',
-    description: 'Ссылка на товар',
+    description: 'Ссылка на товар (обязательное поле)',
   })
-  @IsOptional()
   @IsUrl()
-  link?: string;
+  link: string;
 
   @ApiProperty({
     example: 'https://example.com/images/console.jpg',

@@ -12,11 +12,11 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { WishlistsService } from './wishlists.service';
+import { WishlistFilter, WishlistsService } from './wishlists.service';
 import { CreateWishlistDto } from './dto/create-wishlist.dto';
 import { UpdateWishlistDto } from './dto/update-wishlist.dto';
-import { Wishlist } from './entities/wishlist.entity';
 import { JwtAuthGuard } from 'src/auth/jwtAuth.guard';
+import { AuthenticatedRequest } from 'src/auth/auth.controller';
 
 @Controller('wishlistlists')
 export class WishlistsController {
@@ -24,12 +24,18 @@ export class WishlistsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateWishlistDto, @Req() req) {
-    return this.wishlists.create({ ...dto, ownerId: req.user.userId });
+  create(@Body() dto: CreateWishlistDto, @Req() req: AuthenticatedRequest) {
+    const { userId } = req.user;
+    return this.wishlists.create(dto, Number(userId));
   }
 
   @Get()
-  findAll(@Query() filter: Wishlist[]) {
+  findAll(@Query() q: Record<string, string>) {
+    const filter: WishlistFilter = {
+      id: q.id ? Number(q.id) : undefined,
+      ownerId: q.ownerId ? Number(q.ownerId) : undefined,
+      name: q.name,
+    };
     return this.wishlists.find(filter);
   }
 
@@ -41,24 +47,28 @@ export class WishlistsController {
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   async update(
-    @Param('id') id: number,
+    @Param('id') id: string,
     @Body() dto: UpdateWishlistDto,
-    @Req() req,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const wl = await this.wishlists.findById(+id);
+    const wishlistId = Number(id);
+    const wl = await this.wishlists.findById(wishlistId);
     if (!wl) throw new NotFoundException('Подборка не найдена');
-    if (wl.owner.id !== req.user.userId)
+    if (wl.owner.id !== req.user.userId) {
       throw new ForbiddenException('Можно менять только свои подборки');
-    return this.wishlists.updateOne(+id, dto);
+    }
+    return this.wishlists.updateOne(wishlistId, dto);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  async remove(@Param('id') id: number, @Req() req) {
-    const wl = await this.wishlists.findById(+id);
+  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const wishlistId = Number(id);
+    const wl = await this.wishlists.findById(wishlistId);
     if (!wl) throw new NotFoundException('Подборка не найдена');
-    if (wl.owner.id !== req.user.userId)
+    if (wl.owner.id !== req.user.userId) {
       throw new ForbiddenException('Можно удалять только свои подборки');
-    return this.wishlists.removeOne(+id);
+    }
+    return this.wishlists.removeOne(wishlistId);
   }
 }
