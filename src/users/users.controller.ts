@@ -4,14 +4,13 @@ import {
   Post,
   Body,
   Patch,
-  Delete,
-  Query, UseGuards, Req, Param,
+  UseGuards,
+  Req,
+  Param,
+  ConflictException,
 } from '@nestjs/common';
-import { FindOptionsWhere } from 'typeorm';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
 import { HashService } from 'src/hash/hash.service';
 import { JwtAuthGuard } from 'src/auth/jwtAuth.guard';
 
@@ -22,36 +21,12 @@ export class UsersController {
       private readonly hashService: HashService
   ) {}
 
-  @Post()
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
-  }
-
-  @Get()
-  findOne(@Query() filter: FindOptionsWhere<User>) {
-    return this.usersService.findOne(filter);
-  }
-
-  @Patch()
-  update(
-      @Query() filter: FindOptionsWhere<User>,
-      @Body() dto: UpdateUserDto,
-  ) {
-    return this.usersService.updateOne(filter, dto);
-  }
-
-  @Delete()
-  remove(@Query() filter: FindOptionsWhere<User>) {
-    return this.usersService.removeOne(filter);
-  }
-
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getMe(@Req() req) {
     return this.usersService.findOne({ id: req.user.userId });
   }
 
-  // Редактировать свой профиль (требует JWT)
   @UseGuards(JwtAuthGuard)
   @Patch('me')
   async updateMe(@Req() req, @Body() dto: UpdateUserDto) {
@@ -59,18 +34,41 @@ export class UsersController {
     if (dto.password) {
       dto.password = await this.hashService.hash(dto.password);
     }
-    return this.usersService.updateOne({ id: userId }, dto);
+    try {
+      return await this.usersService.updateOne({ id: userId }, dto);
+    } catch (e: any) {
+      if (e.code === '23505') {
+        throw new ConflictException('Пользователь с таким email или username уже зарегистрирован');
+      }
+      throw e;
+    }
   }
 
-  // Получить чужой профиль по username
   @Get(':username')
   async getByUsername(@Param('username') username: string) {
     const user = await this.usersService.findOne({ username });
     if (user) {
-      const { password, ...publicData } = user; // скрываем пароль!
+      const { password, ...publicData } = user;
       return publicData;
     }
     return null;
   }
 
+  @Post('find')
+  async findUsersPost(@Body('query') query: string) {
+    if (!query) return [];
+    const users = await this.usersService.findMany(query);
+    return users.map(({ password, ...user }) => user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/wishes')
+  async getMyWishes(@Req() req) {
+    return this.usersService.getWishesByUserId(req.user.userId);
+  }
+
+  @Get(':username/wishes')
+  async getUserWishes(@Param('username') username: string) {
+    return this.usersService.getWishesByUsername(username);
+  }
 }

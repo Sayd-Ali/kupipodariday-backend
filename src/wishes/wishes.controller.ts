@@ -5,38 +5,56 @@ import {
   Body,
   Patch,
   Delete,
-  Query,
+  UseGuards,
+  Param,
+  Req,
 } from '@nestjs/common';
-import { FindOptionsWhere } from 'typeorm';
 import { WishesService } from './wishes.service';
 import { CreateWishDto } from './dto/create-wish.dto';
 import { UpdateWishDto } from './dto/update-wish.dto';
-import { Wish } from './entities/wish.entity';
+import { JwtAuthGuard } from 'src/auth/jwtAuth.guard';
 
 @Controller('wishes')
 export class WishesController {
   constructor(private readonly wishes: WishesService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateWishDto) {
-    return this.wishes.create(dto);
+  create(@Body() dto: CreateWishDto, @Req() req) {
+    return this.wishes.create({ ...dto, ownerId: req.user.userId });
   }
 
-  @Get()
-  findOne(@Query() filter: FindOptionsWhere<Wish>) {
-    return this.wishes.findOne(filter);
+  @Get('last')
+  getLast() {
+    return this.wishes.getLast();
   }
 
-  @Patch()
-  update(
-      @Query() filter: FindOptionsWhere<Wish>,
-      @Body() dto: UpdateWishDto,
-  ) {
-    return this.wishes.updateOne(filter, dto);
+  @Get('top')
+  getTop() {
+    return this.wishes.getTop();
   }
 
-  @Delete()
-  remove(@Query() filter: FindOptionsWhere<Wish>) {
-    return this.wishes.removeOne(filter);
+  @Get(':id')
+  getOne(@Param('id') id: number, @Req() req) {
+    const viewerId = req.user?.userId;
+    return this.wishes.findOneById(+id, viewerId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  update(@Param('id') id: number, @Body() dto: UpdateWishDto, @Req() req) {
+    return this.wishes.updateProtectedWish(+id, dto, req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  remove(@Param('id') id: number, @Req() req) {
+    return this.wishes.removeProtectedWish(+id, req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/copy')
+  copy(@Param('id') id: number, @Req() req) {
+    return this.wishes.copyWish(+id, req.user.userId);
   }
 }

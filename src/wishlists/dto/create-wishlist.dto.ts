@@ -37,15 +37,6 @@ export class CreateWishlistDto {
     @IsOptional()
     image?: string;
 
-    @ApiProperty({
-        example: 7,
-        description: 'ID пользователя-владельца списка',
-    })
-    @Type(() => Number)
-    @IsInt()
-    @IsPositive()
-    ownerId: number;
-
     @ApiPropertyOptional({
         type: [Number],
         example: [1, 2, 3],
@@ -57,5 +48,5 @@ export class CreateWishlistDto {
     @IsInt({ each: true })
     @IsPositive({ each: true })
     @IsOptional()
-    itemIds?: number[];
+    itemsId?: number[];
 }

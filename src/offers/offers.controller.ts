@@ -3,40 +3,29 @@ import {
   Get,
   Post,
   Body,
-  Patch,
-  Delete,
-  Query,
+  Query, UseGuards, Req, Param,
 } from '@nestjs/common';
-import { FindOptionsWhere } from 'typeorm';
 import { OffersService } from './offers.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
-import { UpdateOfferDto } from './dto/update-offer.dto';
-import { Offer } from './entities/offer.entity';
+import { JwtAuthGuard } from 'src/auth/jwtAuth.guard';
 
 @Controller('offers')
 export class OffersController {
   constructor(private readonly offers: OffersService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateOfferDto) {
-    return this.offers.create(dto);
+  async create(@Body() dto: CreateOfferDto, @Req() req) {
+    return this.offers.create({ ...dto, userId: req.user.userId });
   }
 
   @Get()
-  findOne(@Query() filter: FindOptionsWhere<Offer>) {
-    return this.offers.findOne(filter);
+  find(@Query() filter: any) {
+    return this.offers.find(filter);
   }
 
-  @Patch()
-  update(
-      @Query() filter: FindOptionsWhere<Offer>,
-      @Body() dto: UpdateOfferDto,
-  ) {
-    return this.offers.updateOne(filter, dto);
-  }
-
-  @Delete()
-  remove(@Query() filter: FindOptionsWhere<Offer>) {
-    return this.offers.removeOne(filter);
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.offers.find({ id });
   }
 }

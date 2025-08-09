@@ -1,7 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { HashService } from '../hash/hash.service';
 import { JwtService } from '@nestjs/jwt';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -25,8 +26,15 @@ export class AuthService {
         return { access_token: this.jwt.sign(payload) };
     }
 
-    async signup(dto: any) {
+    async signup(dto: CreateUserDto) {
         const hashed = await this.hash.hash(dto.password);
-        return this.users.create({ ...dto, password: hashed });
+        try {
+            return await this.users.create({ ...dto, password: hashed });
+        } catch (e: any) {
+            if (e.code === '23505') {
+                throw new ConflictException('Пользователь с таким email или username уже зарегистрирован');
+            }
+            throw e;
+        }
     }
 }

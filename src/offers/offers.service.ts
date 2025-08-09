@@ -1,9 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Offer } from './entities/offer.entity';
 import { CreateOfferDto } from './dto/create-offer.dto';
-import { UpdateOfferDto } from './dto/update-offer.dto';
 import { Wish } from 'src/wishes/entities/wish.entity';
 import { User } from 'src/users/entities/user.entity';
 
@@ -18,46 +17,46 @@ export class OffersService {
       private usersRepo: Repository<User>,
   ) {}
 
-  async create(dto: CreateOfferDto): Promise<Offer> {
-    const wish = await this.wishesRepo.findOneBy({ id: dto.itemId });
+  async create(dto: CreateOfferDto & { userId: number }): Promise<Offer> {
+    const wish = await this.wishesRepo.findOne({
+      where: { id: dto.itemId },
+      relations: ['owner'],
+    });
+    if (!wish) throw new BadRequestException('Подарок не найден');
+    if (wish.owner.id === dto.userId) throw new ForbiddenException('Вы не можете скидываться на свой подарок');
+
+    const price = Number(wish.price);
+    const raised = Number(wish.raised);
+    if (raised >= price) throw new BadRequestException('На подарок уже собрана нужная сумма');
+
+    const available = +(price - raised).toFixed(2);
+    if (dto.amount > available) {
+      throw new BadRequestException(`Сумма превышает остаток до цели. Доступно: ${available}`);
+    }
+
     const user = await this.usersRepo.findOneBy({ id: dto.userId });
-    if (!wish || !user) throw new BadRequestException('Wish or User not found');
+    if (!user) throw new BadRequestException('Пользователь не найден');
+
     const offer = this.offersRepo.create({
       amount: dto.amount,
       hidden: dto.hidden ?? false,
       item: wish,
       user,
     });
+
+    wish.raised = +(raised + dto.amount).toFixed(2);
+    await this.wishesRepo.save(wish);
+
     return this.offersRepo.save(offer);
   }
 
-  findOne(filter: FindOptionsWhere<Offer>): Promise<Offer | null> {
-    return this.offersRepo.findOne({ where: filter, relations: ['item', 'user'] });
-  }
+  async find(filter: any = {}): Promise<Offer[] | Offer | null> {
+    if (filter.id) filter.id = +filter.id;
 
-  async updateOne(
-      filter: FindOptionsWhere<Offer>,
-      dto: UpdateOfferDto,
-  ): Promise<Offer | null> {
-    const offer = await this.offersRepo.findOne({ where: filter, relations: ['item', 'user'] });
-    if (!offer) return null;
-    if (dto.amount !== undefined) offer.amount = dto.amount;
-    if (dto.hidden !== undefined) offer.hidden = dto.hidden;
-    if (dto.itemId) {
-      const w = await this.wishesRepo.findOneBy({ id: dto.itemId });
-      if (w) offer.item = w;
+    if (Object.keys(filter).length === 1 && filter.id) {
+      return this.offersRepo.findOne({ where: { id: filter.id }, relations: ['item', 'user'] });
     }
-    if (dto.userId) {
-      const u = await this.usersRepo.findOneBy({ id: dto.userId });
-      if (u) offer.user = u;
-    }
-    return this.offersRepo.save(offer);
-  }
 
-  async removeOne(filter: FindOptionsWhere<Offer>): Promise<Offer | null> {
-    const offer = await this.offersRepo.findOneBy(filter);
-    if (!offer) return null;
-    await this.offersRepo.remove(offer);
-    return offer;
+    return this.offersRepo.find({ where: filter, relations: ['item', 'user'] });
   }
 }

@@ -6,8 +6,6 @@ import {
     IsUrl,
     IsNumber,
     Min,
-    IsInt,
-    IsPositive,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -45,16 +43,6 @@ export class CreateWishDto {
     @Min(0)
     price: number;
 
-    @ApiPropertyOptional({
-        example: 0,
-        description: 'Сумма уже собранных средств (до двух знаков после запятой)',
-    })
-    @Type(() => Number)
-    @IsNumber({ maxDecimalPlaces: 2 })
-    @Min(0)
-    @IsOptional()
-    raised?: number;
-
     @ApiProperty({
         example: 'Последняя модель с поддержкой VR',
         description: 'Описание подарка (1–1024 символа)',
@@ -63,12 +51,4 @@ export class CreateWishDto {
     @Length(1, 1024)
     description: string;
 
-    @ApiProperty({
-        example: 42,
-        description: 'ID пользователя-владельца желания',
-    })
-    @Type(() => Number)
-    @IsInt()
-    @IsPositive()
-    ownerId: number;
 }

@@ -35,13 +35,4 @@ export class CreateOfferDto {
     @IsInt()
     @IsPositive()
     itemId: number;
-
-    @ApiProperty({
-        example: 456,
-        description: 'ID пользователя, делающего оффер',
-    })
-    @Type(() => Number)
-    @IsInt()
-    @IsPositive()
-    userId: number;
 }
