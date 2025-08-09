@@ -3,7 +3,7 @@ import { HashService } from './hash.service';
 
 @Global()
 @Module({
-    providers: [HashService],
-    exports: [HashService],
+  providers: [HashService],
+  exports: [HashService],
 })
 export class HashModule {}

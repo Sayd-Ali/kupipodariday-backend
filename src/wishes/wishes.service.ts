@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Wish } from './entities/wish.entity';
@@ -9,10 +14,10 @@ import { User } from 'src/users/entities/user.entity';
 @Injectable()
 export class WishesService {
   constructor(
-      @InjectRepository(Wish)
-      private wishesRepo: Repository<Wish>,
-      @InjectRepository(User)
-      private usersRepo: Repository<User>,
+    @InjectRepository(Wish)
+    private wishesRepo: Repository<Wish>,
+    @InjectRepository(User)
+    private usersRepo: Repository<User>,
   ) {}
 
   async create(dto: CreateWishDto & { ownerId: number }): Promise<Wish> {
@@ -38,18 +43,24 @@ export class WishesService {
     if (!wish) throw new NotFoundException('Wish not found');
 
     if (!viewerId || wish.owner.id !== viewerId) {
-      wish.offers = (wish.offers ?? []).filter(o => !o.hidden);
+      wish.offers = (wish.offers ?? []).filter((o) => !o.hidden);
     }
     return wish;
   }
 
-  async updateProtectedWish(id: number, dto: UpdateWishDto, userId: number): Promise<Wish> {
+  async updateProtectedWish(
+    id: number,
+    dto: UpdateWishDto,
+    userId: number,
+  ): Promise<Wish> {
     const wish = await this.findOneById(id);
     if (wish.owner.id !== userId)
       throw new ForbiddenException('Можно редактировать только свои желания!');
 
     if ('price' in dto && wish.offers && wish.offers.length > 0) {
-      throw new BadRequestException('Нельзя менять стоимость, уже есть желающие!');
+      throw new BadRequestException(
+        'Нельзя менять стоимость, уже есть желающие!',
+      );
     }
     if ('raised' in dto) delete dto.raised;
     Object.assign(wish, dto);

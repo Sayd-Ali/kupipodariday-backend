@@ -10,20 +10,22 @@ import { Wish } from 'src/wishes/entities/wish.entity';
 @Injectable()
 export class WishlistsService {
   constructor(
-      @InjectRepository(Wishlist)
-      private wishlistsRepo: Repository<Wishlist>,
-      @InjectRepository(User)
-      private usersRepo: Repository<User>,
-      @InjectRepository(Wish)
-      private wishesRepo: Repository<Wish>,
+    @InjectRepository(Wishlist)
+    private wishlistsRepo: Repository<Wishlist>,
+    @InjectRepository(User)
+    private usersRepo: Repository<User>,
+    @InjectRepository(Wish)
+    private wishesRepo: Repository<Wish>,
   ) {}
 
-  async create(dto: CreateWishlistDto & { ownerId: number }): Promise<Wishlist> {
+  async create(
+    dto: CreateWishlistDto & { ownerId: number },
+  ): Promise<Wishlist> {
     const owner = await this.usersRepo.findOneBy({ id: dto.ownerId });
     if (!owner) throw new Error('Владелец не найден');
     const items = dto.itemsId?.length
-        ? await this.wishesRepo.findBy({ id: In(dto.itemsId) })
-        : [];
+      ? await this.wishesRepo.findBy({ id: In(dto.itemsId) })
+      : [];
     const wishlist = this.wishlistsRepo.create({
       name: dto.name,
       description: dto.description,
@@ -36,20 +38,29 @@ export class WishlistsService {
 
   async find(filter: any = {}): Promise<Wishlist[]> {
     if (filter.id) filter.id = +filter.id;
-    return this.wishlistsRepo.find({ where: filter, relations: ['owner', 'items'] });
+    return this.wishlistsRepo.find({
+      where: filter,
+      relations: ['owner', 'items'],
+    });
   }
 
   async findById(id: number): Promise<Wishlist | null> {
-    return this.wishlistsRepo.findOne({ where: { id }, relations: ['owner', 'items'] });
+    return this.wishlistsRepo.findOne({
+      where: { id },
+      relations: ['owner', 'items'],
+    });
   }
 
-  async updateOne(id: number, dto: UpdateWishlistDto): Promise<Wishlist | null> {
+  async updateOne(
+    id: number,
+    dto: UpdateWishlistDto,
+  ): Promise<Wishlist | null> {
     const wishlist = await this.findById(id);
     if (!wishlist) return null;
     if (dto.itemsId) {
       wishlist.items = dto.itemsId.length
-          ? await this.wishesRepo.findBy({ id: In(dto.itemsId) })
-          : [];
+        ? await this.wishesRepo.findBy({ id: In(dto.itemsId) })
+        : [];
     }
     Object.assign(wishlist, {
       name: dto.name ?? wishlist.name,

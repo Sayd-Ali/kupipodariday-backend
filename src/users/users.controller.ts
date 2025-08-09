@@ -17,8 +17,8 @@ import { JwtAuthGuard } from 'src/auth/jwtAuth.guard';
 @Controller('users')
 export class UsersController {
   constructor(
-      private readonly usersService: UsersService,
-      private readonly hashService: HashService
+    private readonly usersService: UsersService,
+    private readonly hashService: HashService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -38,7 +38,9 @@ export class UsersController {
       return await this.usersService.updateOne({ id: userId }, dto);
     } catch (e: any) {
       if (e.code === '23505') {
-        throw new ConflictException('Пользователь с таким email или username уже зарегистрирован');
+        throw new ConflictException(
+          'Пользователь с таким email или username уже зарегистрирован',
+        );
       }
       throw e;
     }

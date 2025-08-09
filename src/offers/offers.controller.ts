@@ -3,7 +3,10 @@ import {
   Get,
   Post,
   Body,
-  Query, UseGuards, Req, Param,
+  Query,
+  UseGuards,
+  Req,
+  Param,
 } from '@nestjs/common';
 import { OffersService } from './offers.service';
 import { CreateOfferDto } from './dto/create-offer.dto';

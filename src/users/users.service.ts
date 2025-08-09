@@ -8,8 +8,8 @@ import { User } from 'src/users/entities/user.entity';
 @Injectable()
 export class UsersService {
   constructor(
-      @InjectRepository(User)
-      private repo: Repository<User>,
+    @InjectRepository(User)
+    private repo: Repository<User>,
   ) {}
 
   async create(dto: CreateUserDto): Promise<User> {
@@ -21,21 +21,24 @@ export class UsersService {
     if (!filter || Object.keys(filter).length === 0) {
       return null;
     }
-    return this.repo.findOne({ where: filter, relations: ['wishes','offers','wishlists'] });
+    return this.repo.findOne({
+      where: filter,
+      relations: ['wishes', 'offers', 'wishlists'],
+    });
   }
 
   async findMany(query: string): Promise<User[]> {
     return this.repo.find({
       where: [
         { username: ILike(`%${query}%`) },
-        { email: ILike(`%${query}%`) }
-      ]
+        { email: ILike(`%${query}%`) },
+      ],
     });
   }
 
   async updateOne(
-      filter: FindOptionsWhere<User>,
-      dto: UpdateUserDto,
+    filter: FindOptionsWhere<User>,
+    dto: UpdateUserDto,
   ): Promise<User | null> {
     const user = await this.repo.findOne({ where: filter });
     if (!user) return null;
@@ -46,7 +49,12 @@ export class UsersService {
   async getWishesByUserId(userId: number) {
     const user = await this.repo.findOne({
       where: { id: userId },
-      relations: ['wishes', 'wishes.owner', 'wishes.offers', 'wishes.offers.user'],
+      relations: [
+        'wishes',
+        'wishes.owner',
+        'wishes.offers',
+        'wishes.offers.user',
+      ],
     });
     return user?.wishes ?? [];
   }
@@ -54,11 +62,16 @@ export class UsersService {
   async getWishesByUsername(username: string) {
     const user = await this.repo.findOne({
       where: { username },
-      relations: ['wishes', 'wishes.owner', 'wishes.offers', 'wishes.offers.user'],
+      relations: [
+        'wishes',
+        'wishes.owner',
+        'wishes.offers',
+        'wishes.offers.user',
+      ],
     });
     if (!user) return [];
-    user.wishes.forEach(w => {
-      w.offers = (w.offers ?? []).filter(o => !o.hidden);
+    user.wishes.forEach((w) => {
+      w.offers = (w.offers ?? []).filter((o) => !o.hidden);
     });
     return user.wishes;
   }

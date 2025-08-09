@@ -5,7 +5,12 @@ import {
   Body,
   Patch,
   Delete,
-  Query, UseGuards, Param, Req, ForbiddenException, NotFoundException,
+  Query,
+  UseGuards,
+  Param,
+  Req,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { WishlistsService } from './wishlists.service';
 import { CreateWishlistDto } from './dto/create-wishlist.dto';
@@ -35,10 +40,15 @@ export class WishlistsController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  async update(@Param('id') id: number, @Body() dto: UpdateWishlistDto, @Req() req) {
+  async update(
+    @Param('id') id: number,
+    @Body() dto: UpdateWishlistDto,
+    @Req() req,
+  ) {
     const wl = await this.wishlists.findById(+id);
     if (!wl) throw new NotFoundException('Подборка не найдена');
-    if (wl.owner.id !== req.user.userId) throw new ForbiddenException('Можно менять только свои подборки');
+    if (wl.owner.id !== req.user.userId)
+      throw new ForbiddenException('Можно менять только свои подборки');
     return this.wishlists.updateOne(+id, dto);
   }
 
@@ -47,7 +57,8 @@ export class WishlistsController {
   async remove(@Param('id') id: number, @Req() req) {
     const wl = await this.wishlists.findById(+id);
     if (!wl) throw new NotFoundException('Подборка не найдена');
-    if (wl.owner.id !== req.user.userId) throw new ForbiddenException('Можно удалять только свои подборки');
+    if (wl.owner.id !== req.user.userId)
+      throw new ForbiddenException('Можно удалять только свои подборки');
     return this.wishlists.removeOne(+id);
   }
 }
