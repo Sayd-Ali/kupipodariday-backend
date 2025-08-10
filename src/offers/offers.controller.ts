@@ -24,13 +24,15 @@ export class OffersController {
     return this.offers.create(dto, Number(userId));
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   find(@Query() filter: OfferFilter) {
     return this.offers.find(filter);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.offers.find({ id });
+    return this.offers.find({ id: Number(id) });
   }
 }

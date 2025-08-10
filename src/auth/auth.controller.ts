@@ -1,11 +1,18 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request as ReqDec,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { User } from 'src/users/entities/user.entity';
+import type { Request } from 'express';
+import { RequestUser } from './jwt.strategy';
 
 export interface AuthenticatedRequest extends Request {
-  user: User;
+  user: RequestUser;
 }
 
 @Controller()
@@ -19,7 +26,10 @@ export class AuthController {
 
   @UseGuards(AuthGuard('local'))
   @Post('signin')
-  signin(@Request() req: AuthenticatedRequest) {
-    return this.auth.login(req.user);
+  signin(@ReqDec() req: AuthenticatedRequest) {
+    return this.auth.login({
+      id: req.user.userId,
+      username: req.user.username,
+    });
   }
 }

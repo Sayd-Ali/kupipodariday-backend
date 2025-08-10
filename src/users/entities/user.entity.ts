@@ -32,6 +32,7 @@ export class User {
   avatar: string;
 
   @Column({ unique: true })
+  @Exclude({ toPlainOnly: true })
   email: string;
 
   @Column()

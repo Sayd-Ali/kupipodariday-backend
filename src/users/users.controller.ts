@@ -59,6 +59,7 @@ export class UsersController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':username')
   async getByUsername(@Param('username') username: string) {
     const user = await this.usersService.findOne({ username });
@@ -69,6 +70,7 @@ export class UsersController {
     return null;
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('find')
   async findUsersPost(@Body('query') query: string) {
     if (!query) return [];
@@ -81,6 +83,7 @@ export class UsersController {
     return this.usersService.getWishesByUserId(Number(req.user.userId));
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':username/wishes')
   async getUserWishes(@Param('username') username: string) {
     return this.usersService.getWishesByUsername(username);

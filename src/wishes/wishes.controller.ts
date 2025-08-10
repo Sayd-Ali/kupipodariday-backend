@@ -38,6 +38,7 @@ export class WishesController {
     return this.wishes.getTop();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   getOne(@Param('id') id: string, @Req() req: MaybeAuthRequest) {
     const wishId = Number(id);

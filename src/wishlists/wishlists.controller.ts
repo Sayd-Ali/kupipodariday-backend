@@ -29,6 +29,7 @@ export class WishlistsController {
     return this.wishlists.create(dto, Number(userId));
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(@Query() q: Record<string, string>) {
     const filter: WishlistFilter = {
@@ -39,6 +40,7 @@ export class WishlistsController {
     return this.wishlists.find(filter);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findById(@Param('id') id: number) {
     return this.wishlists.findById(+id);
